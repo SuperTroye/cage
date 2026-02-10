@@ -28,6 +28,7 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_output_management_v1.h>
+#include <wlr/types/wlr_output_power_management_v1.h>
 #include <wlr/types/wlr_output_swapchain_manager.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xdg_shell.h>
@@ -429,4 +430,31 @@ handle_output_manager_test(struct wl_listener *listener, void *data)
 	}
 
 	wlr_output_configuration_v1_destroy(config);
+}
+
+void
+handle_output_power_manager_set_mode(struct wl_listener *listener, void *data)
+{
+	struct cg_server *server = wl_container_of(listener, server, output_power_manager_set_mode);
+	struct wlr_output_power_v1_set_mode_event *event = data;
+	struct cg_output *output = event->output->data;
+
+	if (!output) {
+		return;
+	}
+
+	struct wlr_output_state state = {0};
+	
+	switch (event->mode) {
+	case ZWLR_OUTPUT_POWER_V1_MODE_OFF:
+		wlr_output_state_set_enabled(&state, false);
+		break;
+	case ZWLR_OUTPUT_POWER_V1_MODE_ON:
+		wlr_output_state_set_enabled(&state, true);
+		break;
+	}
+
+	if (wlr_output_test_state(event->output, &state)) {
+		wlr_output_commit_state(event->output, &state);
+	}
 }
